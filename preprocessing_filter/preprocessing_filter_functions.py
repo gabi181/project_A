@@ -8,24 +8,24 @@ sound (Boolean) - plays the original file and the filtered one.
 """
 
 
-def filter_wav_file(p, show=False, sound=False):
+def filter_wav_file(src_file, dest_file, show=False, sound=False):
 
     import matplotlib.pyplot as plt
     from scipy.fftpack import rfft, irfft
     import numpy as np
     import soundfile as sf
-    import sounddevice as sd
+#   import sounddevice as sd
     from pathlib import Path
 
     # Read, plot, and listen the original file.
-    data, fs = sf.read(p)
+    data, fs = sf.read(src_file)
     if show:
         plt.plot(data.T[0])
         plt.show()
 
-    if sound:
-        sd.play(data, fs)
-        status = sd.wait()
+#    if sound:
+#       sd.play(data, fs)
+#       status = sd.wait()
 
     F_data = rfft(data.T)  # calculate fourier transform (complex numbers list)
 
@@ -60,15 +60,9 @@ def filter_wav_file(p, show=False, sound=False):
         plt.plot(filtered_data[0], 'r')
         plt.show()
 
-    if sound:
-        sd.play(filtered_data.T*2, fs)
-        status = sd.wait()
-
-    dest_dir = p.parent.parent / ('filtered_' + p.parent.name)
-
-    if not dest_dir.exists():
-        dest_dir.mkdir()
-    dest_file = dest_dir / ('filtered_' + p.name)
+#    if sound:
+#        sd.play(filtered_data.T*2, fs)
+#        status = sd.wait()
 
     sf.write(dest_file, filtered_data.T, fs)
 

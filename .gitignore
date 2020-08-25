@@ -1,0 +1,6 @@
+preprocessing_filter/.idea/*
+preprocessing_filter/.idea/
+McDonnel/.idea/*
+McDonnel/.idea/
+*/__pycache__
+*/*/__pycache__

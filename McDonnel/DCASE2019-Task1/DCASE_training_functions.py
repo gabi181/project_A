@@ -2,6 +2,8 @@ import keras
 from keras import backend as K
 import numpy as np
 import threading
+import soundfile as sound
+import librosa
 
 #for implementing warm restarts in learning rate
 class LR_WarmRestart(keras.callbacks.Callback):
@@ -60,15 +62,49 @@ def threadsafe_generator(f):
     return g
 
 
+"""     
+This function extracts delta features from audio input.
+"""
+
+def deltas(X_in):
+    X_out = (X_in[:, :, 2:, :] - X_in[:, :, :-2, :]) / 10.0
+    X_out = X_out[:, :, 1:-1, :] + (X_in[:, :, 4:, :] - X_in[:, :, :-4, :]) / 5.0
+    return X_out
+
+def concatenated_LM_delta_deltadelta(wavpaths, indecies ,audio_params):
+    NumFreqBins, NumTimeBins, num_audio_channels, SampleDuration, sr, NumFFTPoints, HopLength = audio_params
+    LM = np.zeros((len(wavpaths), NumFreqBins, NumTimeBins, num_audio_channels), 'float32')
+    for i in indecies:
+        stereo, fs = sound.read(wavpaths[i], stop=SampleDuration * sr)
+        for channel in range(num_audio_channels):
+            if len(stereo.shape) == 1:
+                stereo = np.expand_dims(stereo, -1)
+            LM[i, :, :, channel] = librosa.feature.melspectrogram(stereo[:, channel],
+                                                                        sr=sr,
+                                                                        n_fft=NumFFTPoints,
+                                                                        hop_length=HopLength,
+                                                                        n_mels=NumFreqBins,
+                                                                        fmin=0.0,
+                                                                        fmax=sr / 2,
+                                                                        htk=True,
+                                                                        norm=None)
+
+    LM = np.log(LM + 1e-8)
+    LM_deltas = deltas(LM)
+    LM_deltas_deltas = deltas(LM_deltas)
+    LM = np.concatenate((LM[:, :, 4:-4, :], LM_deltas[:, :, 2:-2, :], LM_deltas_deltas), axis=-1)
+    return LM
+
 
 class MixupGenerator():
-    def __init__(self, X_train, y_train, batch_size=32, alpha=0.2, shuffle=True, crop_length=400): #datagen=None):
-        self.X_train = X_train
-        self.y_train = y_train
+    def __init__(self, X_paths, y, audio_params, batch_size=32, alpha=0.2, shuffle=True, crop_length=400): #datagen=None):
+        self.X_paths = X_paths
+        self.y = y
+        self.audio_params = audio_params
         self.batch_size = batch_size
         self.alpha = alpha
         self.shuffle = shuffle
-        self.sample_num = len(X_train)
+        self.sample_num = len(X_paths)
         self.lock = threading.Lock()
         self.NewLength = crop_length
         self.swap_inds = [1,0,3,2,5,4]
@@ -98,14 +134,15 @@ class MixupGenerator():
         return indexes
 
     def __data_generation(self, batch_ids):
-        _, h, w, c = self.X_train.shape
+        # _, h, w, c = self.X_train.shape
         l = np.random.beta(self.alpha, self.alpha, self.batch_size)
         X_l = l.reshape(self.batch_size, 1, 1, 1)
         y_l = l.reshape(self.batch_size, 1)
 
-        X1 = self.X_train[batch_ids[:self.batch_size]]
-        X2 = self.X_train[batch_ids[self.batch_size:]]
-        
+
+        X1 = concatenated_LM_delta_deltadelta(self.X_paths, batch_ids[:self.batch_size], self.audio_params)
+        X2 = concatenated_LM_delta_deltadelta(self.X_paths, batch_ids[self.batch_size:], self.audio_params)
+
         for j in range(X1.shape[0]):
             StartLoc1 = np.random.randint(0,X1.shape[2]-self.NewLength)
             StartLoc2 = np.random.randint(0,X2.shape[2]-self.NewLength)
@@ -126,16 +163,17 @@ class MixupGenerator():
         
         X = X1 * X_l + X2 * (1.0 - X_l)
 
-        if isinstance(self.y_train, list):
-            y = []
+        if isinstance(self.y, list):
+            y_app = []
 
-            for y_train_ in self.y_train:
-                y1 = y_train_[batch_ids[:self.batch_size]]
-                y2 = y_train_[batch_ids[self.batch_size:]]
-                y.append(y1 * y_l + y2 * (1.0 - y_l))
+            for y_ in self.y:
+                y1 = y_[batch_ids[:self.batch_size]]
+                y2 = y_[batch_ids[self.batch_size:]]
+                y_app.append(y1 * y_l + y2 * (1.0 - y_l))
         else:
-            y1 = self.y_train[batch_ids[:self.batch_size]]
-            y2 = self.y_train[batch_ids[self.batch_size:]]
-            y = y1 * y_l + y2 * (1.0 - y_l)
+            y1 = self.y[batch_ids[:self.batch_size]]
+            y2 = self.y[batch_ids[self.batch_size:]]
+            y_app = y1 * y_l + y2 * (1.0 - y_l)
 
-        return X, y
+        return X, y_app
+

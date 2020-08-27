@@ -64,18 +64,20 @@ NumTimeBins = int(np.ceil(SampleDuration * sr / HopLength))
 
 # training parameters
 max_lr = 0.1
-batch_size = 1  # 32
+batch_size = 32
 num_epochs = 5   # 510
 mixup_alpha = 0.4
 crop_length = 400
-
+audio_params = NumFreqBins, NumTimeBins, num_audio_channels, SampleDuration, sr, NumFFTPoints, HopLength
 # %%
 
 # load filenames and labels
 dev_train_df = pd.read_csv(TrainFile, sep='\t', encoding='ASCII')
 dev_val_df = pd.read_csv(ValFile, sep='\t', encoding='ASCII')
 wavpaths_train = dev_train_df['filename'].tolist()
+wav_fullpath_train = [ThisPath + i for i in wavpaths_train]
 wavpaths_val = dev_val_df['filename'].tolist()
+wav_fullpath_val = [ThisPath + i for i in wavpaths_val]
 y_train_labels = dev_train_df['scene_label'].astype('category').cat.codes.values
 y_val_labels = dev_val_df['scene_label'].astype('category').cat.codes.values
 
@@ -93,28 +95,6 @@ def deltas(X_in):
     X_out = (X_in[:, :, 2:, :] - X_in[:, :, :-2, :]) / 10.0
     X_out = X_out[:, :, 1:-1, :] + (X_in[:, :, 4:, :] - X_in[:, :, :-4, :]) / 5.0
     return X_out
-
-
-LM_train = np.zeros((len(wavpaths_train), NumFreqBins, NumTimeBins, num_audio_channels), 'float32')
-for i in range(len(wavpaths_train)):
-    stereo, fs = sound.read(ThisPath + wavpaths_train[i], stop=SampleDuration * sr)
-    for channel in range(num_audio_channels):
-        if len(stereo.shape) == 1:
-            stereo = np.expand_dims(stereo, -1)
-        LM_train[i, :, :, channel] = librosa.feature.melspectrogram(stereo[:, channel],
-                                                                    sr=sr,
-                                                                    n_fft=NumFFTPoints,
-                                                                    hop_length=HopLength,
-                                                                    n_mels=NumFreqBins,
-                                                                    fmin=0.0,
-                                                                    fmax=sr / 2,
-                                                                    htk=True,
-                                                                    norm=None)
-
-LM_train = np.log(LM_train + 1e-8)
-LM_deltas_train = deltas(LM_train)
-LM_deltas_deltas_train = deltas(LM_deltas_train)
-LM_train = np.concatenate((LM_train[:, :, 4:-4, :], LM_deltas_train[:, :, 2:-2, :], LM_deltas_deltas_train), axis=-1)
 
 LM_val = np.zeros((len(wavpaths_val), NumFreqBins, NumTimeBins, num_audio_channels), 'float32')
 for i in range(len(wavpaths_val)):
@@ -153,27 +133,36 @@ model.summary()
 # %%
 
 # set learning rate schedule
-lr_scheduler = LR_WarmRestart(nbatch=np.ceil(LM_train.shape[0] / batch_size), Tmult=2,
+lr_scheduler = LR_WarmRestart(nbatch=np.ceil(len(wav_fullpath_train) / batch_size), Tmult=2,
                               initial_lr=max_lr, min_lr=max_lr * 1e-4,
                               epochs_restart=[3.0, 7.0, 15.0, 31.0, 63.0, 127.0, 255.0, 511.0])
 callbacks = [lr_scheduler]
 
-# create data generator
-TrainDataGen = MixupGenerator(LM_train,
+# create train data generator
+TrainDataGen = MixupGenerator(wav_fullpath_train,
                               y_train,
+                              audio_params,
                               batch_size=batch_size,
                               alpha=mixup_alpha,
                               crop_length=crop_length)()
 
+# create validate data generator
+#ValDataGen = MixupGenerator(wavpaths_val,
+#                              y_val,
+#                              batch_size=batch_size,
+#                              alpha=mixup_alpha,
+#                              crop_length=crop_length)()
+
+#%%
 # train the model
 history = model.fit_generator(TrainDataGen,
                               validation_data=(LM_val, y_val),
-                              epochs=num_epochs,
+                              epochs=5, #num_epochs,
                               verbose=1,
                               workers=4,
                               max_queue_size=100,
                               callbacks=callbacks,
-                              steps_per_epoch=np.ceil(LM_train.shape[0] / batch_size)
+                              steps_per_epoch=np.ceil(len(wavpaths_train) / batch_size)
                               )
 
 # %%

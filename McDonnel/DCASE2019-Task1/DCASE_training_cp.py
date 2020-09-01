@@ -9,6 +9,17 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 # %%
+import tensorflow as tf
+gpu_options = tf.compat.v1.GPUOptions(per_process_gpu_memory_fraction=0.2)
+# gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.2)
+sess = tf.compat.v1.Session(config=tf.compat.v1.ConfigProto(gpu_options=gpu_options))
+from keras import backend as K
+import tensorflow as tf
+config = tf.compat.v1.ConfigProto()
+config.gpu_options.per_process_gpu_memory_fraction = 0.2
+session = tf.compat.v1.Session(config=config)
+tf.compat.v1.keras.backend.set_session(session)
+# %%
 
 # imports
 import numpy as np

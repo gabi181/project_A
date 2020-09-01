@@ -7,7 +7,17 @@ os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
-
+# %%
+import tensorflow as tf
+gpu_options = tf.compat.v1.GPUOptions(per_process_gpu_memory_fraction=0.2)
+# gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.2)
+sess = tf.compat.v1.Session(config=tf.compat.v1.ConfigProto(gpu_options=gpu_options))
+from keras import backend as K
+import tensorflow as tf
+config = tf.compat.v1.ConfigProto()
+config.gpu_options.per_process_gpu_memory_fraction = 0.2
+session = tf.compat.v1.Session(config=config)
+tf.compat.v1.keras.backend.set_session(session)
 # %%
 
 # imports
@@ -29,6 +39,7 @@ print("Librosa version = ", librosa.__version__)
 print("Pysoundfile version = ", sound.__version__)
 print("keras version = ", keras.__version__)
 print("tensorflow version = ", tensorflow.__version__)
+
 
 # %%
 
@@ -124,6 +135,7 @@ model = model_resnet(NumClasses,
                      input_shape=[NumFreqBins, None, 3 * num_audio_channels],
                      num_filters=24,
                      wd=1e-3)
+# %%
 model.compile(loss='categorical_crossentropy',
               optimizer=SGD(lr=max_lr, decay=0, momentum=0.9, nesterov=False),
               metrics=['accuracy'])

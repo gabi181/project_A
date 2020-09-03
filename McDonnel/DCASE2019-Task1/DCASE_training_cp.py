@@ -9,16 +9,20 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 # %%
+# import tensorflow as tf
+# gpu_options = tf.compat.v1.GPUOptions(per_process_gpu_memory_fraction=0.2)
+# # gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.2)
+# sess = tf.compat.v1.Session(config=tf.compat.v1.ConfigProto(gpu_options=gpu_options))
+# from keras import backend as K
+# import tensorflow as tf
+# config = tf.compat.v1.ConfigProto()
+# config.gpu_options.per_process_gpu_memory_fraction = 0.2
+# session = tf.compat.v1.Session(config=config)
+# tf.compat.v1.keras.backend.set_session(session)
+
 import tensorflow as tf
-gpu_options = tf.compat.v1.GPUOptions(per_process_gpu_memory_fraction=0.2)
-# gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.2)
-sess = tf.compat.v1.Session(config=tf.compat.v1.ConfigProto(gpu_options=gpu_options))
-from keras import backend as K
-import tensorflow as tf
-config = tf.compat.v1.ConfigProto()
-config.gpu_options.per_process_gpu_memory_fraction = 0.2
-session = tf.compat.v1.Session(config=config)
-tf.compat.v1.keras.backend.set_session(session)
+gpu_options = tf.compat.v1.GPUOptions(allow_growth=True)
+session = tf.compat.v1.InteractiveSession(config=tf.compat.v1.ConfigProto(gpu_options=gpu_options))
 # %%
 
 # imports
@@ -36,6 +40,11 @@ from keras.optimizers import SGD
 from DCASE2019_network import model_resnet
 from DCASE_training_functions import LR_WarmRestart, MixupGenerator
 
+from time import gmtime, strftime
+from datetime import datetime
+import pytz
+from pathlib import Path
+
 print("Librosa version = ", librosa.__version__)
 print("Pysoundfile version = ", sound.__version__)
 print("keras version = ", keras.__version__)
@@ -43,12 +52,15 @@ print("tensorflow version = ", tensorflow.__version__)
 
 # %%
 
+# DataSource = ''  # original DCASE data.
+DataSource = 'filtered_'  # filtered DCASE data.
+
 WhichTask = '1a'
 # WhichTask = '1b'
 # WhichTask = '1c'
 
 if WhichTask == '1a':
-    ThisPath = '../../data/filtered_TAU-urban-acoustic-scenes-2019-development/'
+    ThisPath = '../../data/' + DataSource + 'TAU-urban-acoustic-scenes-2019-development/'
     TrainFile = ThisPath + 'evaluation_setup/fold1_train.csv'
     ValFile = ThisPath + 'evaluation_setup/fold1_evaluate.csv'
     sr = 48000
@@ -75,8 +87,8 @@ NumTimeBins = int(np.ceil(SampleDuration * sr / HopLength))
 
 # training parameters
 max_lr = 0.1
-batch_size = 1  # 32
-num_epochs = 5   # 510
+batch_size = 8  # 32
+num_epochs = 60  # 510
 mixup_alpha = 0.4
 crop_length = 400
 
@@ -100,53 +112,86 @@ y_val = keras.utils.to_categorical(y_val_labels, NumClasses)
 # %%
 
 # load wav files and get log-mel spectrograms, deltas, and delta-deltas
-def deltas(X_in):
-    X_out = (X_in[:, :, 2:, :] - X_in[:, :, :-2, :]) / 10.0
-    X_out = X_out[:, :, 1:-1, :] + (X_in[:, :, 4:, :] - X_in[:, :, :-4, :]) / 5.0
-    return X_out
+
+# If the data has already analyzed and saved, then load it. Else analyze and save it.
+
+p = Path('.')
+saved_vectors_path = p.resolve() / 'saved_vectors'
+
+# Change paths or file names if needed!
+
+LM_train_name = saved_vectors_path / (DataSource + 'LM_train.npy')
+LM_val_name = saved_vectors_path / (DataSource + 'LM_val.npy')
+y_train_name = saved_vectors_path / (DataSource + 'y_train.npy')
+y_val_name = saved_vectors_path / (DataSource + 'y_val.npy')
+
+if not saved_vectors_path.exists():
+    saved_vectors_path.mkdir()
+
+if LM_train_name.exists() and LM_val_name.exists() and y_train_name.exists() and y_val_name.exists():
+    print('loading the files..')
+    LM_train = np.load(LM_train_name)
+    LM_val = np.load(LM_val_name)
+    y_train = np.load(y_train_name)
+    y_val = np.load(y_val_name)
+    print('the files has been loaded!')
+
+else:
+    print('Anlyzing new data..')
+    def deltas(X_in):
+        X_out = (X_in[:, :, 2:, :] - X_in[:, :, :-2, :]) / 10.0
+        X_out = X_out[:, :, 1:-1, :] + (X_in[:, :, 4:, :] - X_in[:, :, :-4, :]) / 5.0
+        return X_out
 
 
-LM_train = np.zeros((len(wavpaths_train), NumFreqBins, NumTimeBins, num_audio_channels), 'float32')
-for i in range(len(wavpaths_train)):
-    stereo, fs = sound.read(ThisPath + wavpaths_train[i], stop=SampleDuration * sr)
-    for channel in range(num_audio_channels):
-        if len(stereo.shape) == 1:
-            stereo = np.expand_dims(stereo, -1)
-        LM_train[i, :, :, channel] = librosa.feature.melspectrogram(stereo[:, channel],
-                                                                    sr=sr,
-                                                                    n_fft=NumFFTPoints,
-                                                                    hop_length=HopLength,
-                                                                    n_mels=NumFreqBins,
-                                                                    fmin=0.0,
-                                                                    fmax=sr / 2,
-                                                                    htk=True,
-                                                                    norm=None)
+    LM_train = np.zeros((len(wavpaths_train), NumFreqBins, NumTimeBins, num_audio_channels), 'float32')
+    for i in range(len(wavpaths_train)):
+        stereo, fs = sound.read(ThisPath + wavpaths_train[i], stop=SampleDuration * sr)
+        for channel in range(num_audio_channels):
+            if len(stereo.shape) == 1:
+                stereo = np.expand_dims(stereo, -1)
+            LM_train[i, :, :, channel] = librosa.feature.melspectrogram(stereo[:, channel],
+                                                                        sr=sr,
+                                                                        n_fft=NumFFTPoints,
+                                                                        hop_length=HopLength,
+                                                                        n_mels=NumFreqBins,
+                                                                        fmin=0.0,
+                                                                        fmax=sr / 2,
+                                                                        htk=True,
+                                                                        norm=None)
 
-LM_train = np.log(LM_train + 1e-8)
-LM_deltas_train = deltas(LM_train)
-LM_deltas_deltas_train = deltas(LM_deltas_train)
-LM_train = np.concatenate((LM_train[:, :, 4:-4, :], LM_deltas_train[:, :, 2:-2, :], LM_deltas_deltas_train), axis=-1)
+    LM_train = np.log(LM_train + 1e-8)
+    LM_deltas_train = deltas(LM_train)
+    LM_deltas_deltas_train = deltas(LM_deltas_train)
+    LM_train = np.concatenate((LM_train[:, :, 4:-4, :], LM_deltas_train[:, :, 2:-2, :], LM_deltas_deltas_train), axis=-1)
 
-LM_val = np.zeros((len(wavpaths_val), NumFreqBins, NumTimeBins, num_audio_channels), 'float32')
-for i in range(len(wavpaths_val)):
-    stereo, fs = sound.read(ThisPath + wavpaths_val[i], stop=SampleDuration * sr)
-    for channel in range(num_audio_channels):
-        if len(stereo.shape) == 1:
-            stereo = np.expand_dims(stereo, -1)
-        LM_val[i, :, :, channel] = librosa.feature.melspectrogram(stereo[:, channel],
-                                                                  sr=sr,
-                                                                  n_fft=NumFFTPoints,
-                                                                  hop_length=HopLength,
-                                                                  n_mels=NumFreqBins,
-                                                                  fmin=0.0,
-                                                                  fmax=sr / 2,
-                                                                  htk=True,
-                                                                  norm=None)
+    LM_val = np.zeros((len(wavpaths_val), NumFreqBins, NumTimeBins, num_audio_channels), 'float32')
+    for i in range(len(wavpaths_val)):
+        stereo, fs = sound.read(ThisPath + wavpaths_val[i], stop=SampleDuration * sr)
+        for channel in range(num_audio_channels):
+            if len(stereo.shape) == 1:
+                stereo = np.expand_dims(stereo, -1)
+            LM_val[i, :, :, channel] = librosa.feature.melspectrogram(stereo[:, channel],
+                                                                      sr=sr,
+                                                                      n_fft=NumFFTPoints,
+                                                                      hop_length=HopLength,
+                                                                      n_mels=NumFreqBins,
+                                                                      fmin=0.0,
+                                                                      fmax=sr / 2,
+                                                                      htk=True,
+                                                                      norm=None)
 
-LM_val = np.log(LM_val + 1e-8)
-LM_deltas_val = deltas(LM_val)
-LM_deltas_deltas_val = deltas(LM_deltas_val)
-LM_val = np.concatenate((LM_val[:, :, 4:-4, :], LM_deltas_val[:, :, 2:-2, :], LM_deltas_deltas_val), axis=-1)
+    LM_val = np.log(LM_val + 1e-8)
+    LM_deltas_val = deltas(LM_val)
+    LM_deltas_deltas_val = deltas(LM_deltas_val)
+    LM_val = np.concatenate((LM_val[:, :, 4:-4, :], LM_deltas_val[:, :, 2:-2, :], LM_deltas_deltas_val), axis=-1)
+
+    print('saving the analysis')
+
+    np.save(LM_train_name, LM_train)
+    np.save(LM_val_name, LM_val)
+    np.save(y_train_name, y_train)
+    np.save(y_val_name, y_val)
 
 # %%
 
@@ -177,16 +222,20 @@ TrainDataGen = MixupGenerator(LM_train,
                               crop_length=crop_length)()
 
 # train the model
-history = model.fit_generator(TrainDataGen,
-                              validation_data=(LM_val, y_val),
-                              epochs=num_epochs,
-                              verbose=1,
-                              workers=4,
-                              max_queue_size=100,
-                              callbacks=callbacks,
-                              steps_per_epoch=np.ceil(LM_train.shape[0] / batch_size)
-                              )
+
+history = model.fit(TrainDataGen,
+                    validation_data=(LM_val, y_val),
+                    epochs=num_epochs,
+                    verbose=1,
+                    workers=4,
+                    max_queue_size=100,
+                    callbacks=callbacks,
+                    steps_per_epoch=np.ceil(LM_train.shape[0] / batch_size)
+                    )
 
 # %%
 
-model.save('DCASE_' + WhichTask + '_Task_development_1.h5')
+tz = pytz.timezone('Asia/Jerusalem')
+israel_datetime = datetime.now(tz)
+model.save('./models/DCASE_' + DataSource + WhichTask + '_Task_development_1_' + israel_datetime.strftime("%d-%m-%Y_%H:%M:%S") + '_.h5')
+

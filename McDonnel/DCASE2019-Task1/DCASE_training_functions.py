@@ -2,6 +2,7 @@ import keras
 from keras import backend as K
 import numpy as np
 import threading
+import gc
 
 #for implementing warm restarts in learning rate
 class LR_WarmRestart(keras.callbacks.Callback):
@@ -28,6 +29,7 @@ class LR_WarmRestart(keras.callbacks.Callback):
     def on_epoch_end(self, epochs, logs={}):
         lr = K.get_value(self.model.optimizer.lr)
         print ('\nLearningRate:{:.6f}'.format(lr))
+        gc.collect()
     
     def on_batch_begin(self, batch, logs={}):
         pts = self.currentEP + batch/self.nbatch - self.startEP

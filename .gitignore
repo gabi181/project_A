@@ -4,3 +4,6 @@ McDonnel/.idea/*
 McDonnel/.idea/
 */__pycache__
 */*/__pycache__
+McDonnel/models/*
+McDonnel/saved_vectors/*
+

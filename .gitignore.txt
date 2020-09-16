@@ -1,2 +1,0 @@
-preprocessing_filter/.idea/*
-preprocessing_filter/.idea/

@@ -6,4 +6,4 @@ McDonnel/.idea/
 */*/__pycache__
 McDonnel/models/*
 McDonnel/saved_vectors/*
-
+McDonnel/confusion_matrices/

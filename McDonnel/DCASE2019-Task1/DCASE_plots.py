@@ -1,12 +1,14 @@
 import matplotlib.pyplot as plt
 from sklearn.metrics import confusion_matrix
 import numpy as np
+from pathlib import Path
 
 #adapted from https://scikit-learn.org/stable/auto_examples/model_selection/plot_confusion_matrix.html
 def plot_confusion_matrix(y_true, y_pred, classes,
                           normalize=False,
                           title=None,
-                          cmap=plt.cm.Blues):
+                          cmap=plt.cm.Blues,
+                          data_details=[Path('.'), 'DCASE_TASK1a', '']):
     """
     This function prints and plots the confusion matrix.
     Normalization can be applied by setting `normalize=True`.
@@ -57,5 +59,10 @@ def plot_confusion_matrix(y_true, y_pred, classes,
                     color="white" if cm[i, j] > thresh else "black")
     
     fig.tight_layout()
+    path, model_name, data_type = data_details
+    path = path.resolve() / 'confusion_matrices'
+    if not path.exists():
+        path.mkdir()
+    plt.savefig(path / (model_name + '_' + data_type))
     plt.show()
     return

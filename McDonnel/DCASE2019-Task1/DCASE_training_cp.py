@@ -52,7 +52,7 @@ print("tensorflow version = ", tensorflow.__version__)
 
 # %%
 
-# DataSource = ''  # original DCASE data.
+#DataSource = ''  # original DCASE data.
 DataSource = 'filtered_'  # filtered DCASE data.
 
 WhichTask = '1a'
@@ -86,9 +86,9 @@ HopLength = int(NumFFTPoints / 2)
 NumTimeBins = int(np.ceil(SampleDuration * sr / HopLength))
 
 # training parameters
-max_lr = 0.1
+max_lr = 0.025
 batch_size = 8  # 32
-num_epochs = 60  # 510
+num_epochs = 900  # 510
 mixup_alpha = 0.4
 crop_length = 400
 
@@ -129,12 +129,13 @@ if not saved_vectors_path.exists():
     saved_vectors_path.mkdir()
 
 if LM_train_name.exists() and LM_val_name.exists() and y_train_name.exists() and y_val_name.exists():
-    print('loading the files..')
+    print('loading', LM_train_name)
     LM_train = np.load(LM_train_name)
+    print('loading', LM_val_name)
     LM_val = np.load(LM_val_name)
     y_train = np.load(y_train_name)
     y_val = np.load(y_val_name)
-    print('the files has been loaded!')
+    print('the files have been loaded!')
 
 else:
     print('Anlyzing new data..')
@@ -233,9 +234,9 @@ history = model.fit(TrainDataGen,
                     steps_per_epoch=np.ceil(LM_train.shape[0] / batch_size)
                     )
 
-# %%
+
 
 tz = pytz.timezone('Asia/Jerusalem')
 israel_datetime = datetime.now(tz)
-model.save('./models/DCASE_' + DataSource + WhichTask + '_Task_development_1_' + israel_datetime.strftime("%d-%m-%Y_%H:%M:%S") + '_.h5')
+model.save('./models/DCASE_' + DataSource + WhichTask + '_Task_development_1_' + israel_datetime.strftime("%d-%m-%Y_%H:%M:%S") + '.h5')
 

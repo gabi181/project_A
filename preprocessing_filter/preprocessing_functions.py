@@ -138,3 +138,17 @@ def cut_wav_file(src_file, dest_dir, length_of_segment):
         sf.write(dest_dir / (src_file.stem + '_' + str(seg) + src_file.suffix), cut_data, fs)
 
 
+"""
+This function read, decimate in factor 3 and save a wav file.
+"""
+#%%
+
+
+def decimate_wav_file(src_file, dest_dir, dec_factor):
+    import soundfile as sf
+    from pathlib import Path
+    from scipy import signal
+    data, fs = sf.read(src_file)
+    dec_data = signal.decimate(data, dec_factor, axis=0)
+    dec_fs = int(fs/dec_factor)
+    sf.write(dest_dir / src_file.name, dec_data, dec_fs)

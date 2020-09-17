@@ -52,18 +52,22 @@ print("tensorflow version = ", tensorflow.__version__)
 
 # %%
 
-#DataSource = ''  # original DCASE data.
-DataSource = 'filtered_'  # filtered DCASE data.
+# DataSource = ''  # original DCASE data.
+# DataSource = 'filtered_'  # filtered DCASE data.
+# DataSource = 'cut_length_1_'  # cut DCASE data in length 1 sec
+DataSource = 'decimate_3_'
 
 WhichTask = '1a'
 # WhichTask = '1b'
 # WhichTask = '1c'
 
+dec_factor = 3
+
 if WhichTask == '1a':
     ThisPath = '../../data/' + DataSource + 'TAU-urban-acoustic-scenes-2019-development/'
     TrainFile = ThisPath + 'evaluation_setup/fold1_train.csv'
     ValFile = ThisPath + 'evaluation_setup/fold1_evaluate.csv'
-    sr = 48000
+    sr = int(48000 / dec_factor)
     num_audio_channels = 2
 elif WhichTask == '1b':
     ThisPath = '../Task1b/'
@@ -77,20 +81,20 @@ elif WhichTask == '1c':
     sr = 44100
     num_audio_channels = 1
 
-SampleDuration = 10
+SampleDuration = 10  # 10
 
 # log-mel spectrogram parameters
-NumFreqBins = 128
-NumFFTPoints = 2048
-HopLength = int(NumFFTPoints / 2)
-NumTimeBins = int(np.ceil(SampleDuration * sr / HopLength))
+NumFreqBins = 128  # effects on mel freq resolution.
+NumFFTPoints = 2048  # length of the window that ffted. (bigger window better freq resolution worse time resolution)
+HopLength = int(NumFFTPoints / 2)  # the gap between start of two adjacent windows
+NumTimeBins = int(np.ceil(SampleDuration * sr / HopLength))  # size of time dimension.
 
 # training parameters
-max_lr = 0.025
-batch_size = 8  # 32
-num_epochs = 900  # 510
+max_lr = 0.1
+batch_size = 16  # filtered+normal = 8, cut_length_1 = 32, decimated = 16
+num_epochs = 5  # 510
 mixup_alpha = 0.4
-crop_length = 400
+crop_length = 100  # cut_length_1 = 30, normal+filtered = 400, dec_3 = 100
 
 # %%
 
@@ -213,15 +217,16 @@ model.summary()
 lr_scheduler = LR_WarmRestart(nbatch=np.ceil(LM_train.shape[0] / batch_size), Tmult=2,
                               initial_lr=max_lr, min_lr=max_lr * 1e-4,
                               epochs_restart=[3.0, 7.0, 15.0, 31.0, 63.0, 127.0, 255.0, 511.0])
-callbacks = [lr_scheduler]
 
+callbacks = [lr_scheduler]
+# %%
 # create data generator
 TrainDataGen = MixupGenerator(LM_train,
                               y_train,
                               batch_size=batch_size,
                               alpha=mixup_alpha,
                               crop_length=crop_length)()
-
+# %%
 # train the model
 
 history = model.fit(TrainDataGen,
@@ -235,8 +240,16 @@ history = model.fit(TrainDataGen,
                     )
 
 
-
 tz = pytz.timezone('Asia/Jerusalem')
 israel_datetime = datetime.now(tz)
-model.save('./models/DCASE_' + DataSource + WhichTask + '_Task_development_1_' + israel_datetime.strftime("%d-%m-%Y_%H:%M:%S") + '.h5')
+#%%
+model_name = 'DCASE_' + DataSource + israel_datetime.strftime("%d-%m-%Y_%H:%M:%S")
+model.save('./models/' + model_name + '.h5')
 
+model_doc_file = open('./models/Readme.txt', 'a')
+model_doc_file.write('\n' + model_name + '\n' +
+                     'max_lr= ' + str(max_lr) +
+                     '\tbatch_size= ' + str(batch_size) +
+                     '\tnum_epochs= ' + str(num_epochs) +
+                     '\tcrop_length= ' + str(crop_length) + '\n')
+model_doc_file.close()

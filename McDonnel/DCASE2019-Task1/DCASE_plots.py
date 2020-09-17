@@ -63,6 +63,6 @@ def plot_confusion_matrix(y_true, y_pred, classes,
     path = path.resolve() / 'confusion_matrices'
     if not path.exists():
         path.mkdir()
-    plt.savefig(path / (model_name + '_' + data_type))
+    plt.savefig(path / ('model-' + model_name + '_test_data-' + data_type[:-1]))
     plt.show()
     return

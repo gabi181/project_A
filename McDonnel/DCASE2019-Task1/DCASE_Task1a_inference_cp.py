@@ -26,10 +26,12 @@ print("Pysoundfile version = ",sound.__version__)
 print("keras version = ",keras.__version__)
 print("tensorflow version = ",tensorflow.__version__)
 #%%
-# DataSource = ''  # original DCASE data.
-DataSource = 'filtered_'  # filtered DCASE data.
+DataSource = ''  # original DCASE data.
+# DataSource = 'filtered_'  # filtered DCASE data.
+# DataSource = 'cut_length_1_'  # cut DCASE data, length 1 seconds.
+# DataSource = 'decimate_3_'
 
-model_version = 'DCASE_filtered_1a_Task_development_1_13-09-2020_22:03:36'
+model_version = 'DCASE_decimate_3_1a_Task_development_1_17-09-2020_16:56:57'
 
 num_audio_channels = 2
 

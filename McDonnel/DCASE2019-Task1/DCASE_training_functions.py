@@ -107,7 +107,7 @@ class MixupGenerator():
 
         X1 = self.X_train[batch_ids[:self.batch_size]]
         X2 = self.X_train[batch_ids[self.batch_size:]]
-        
+
         for j in range(X1.shape[0]):
             StartLoc1 = np.random.randint(0,X1.shape[2]-self.NewLength)
             StartLoc2 = np.random.randint(0,X2.shape[2]-self.NewLength)

@@ -116,3 +116,25 @@ def create_two_way_radio_filter(f_length=8500, data_sec=10, show=False):
         plt.show()
 
     return window
+
+
+"""
+This function cut src_file to segments with length (seconds) of length_of_segments.
+The remainder is thrown.
+"""
+
+
+def cut_wav_file(src_file, dest_dir, length_of_segment):
+    import soundfile as sf
+    from pathlib import Path
+    import numpy as np
+
+    data, fs = sf.read(src_file)
+    time_len = len(data) / fs
+    num_of_segments = int(np.floor(time_len / length_of_segment))
+
+    for seg in range(num_of_segments):
+        cut_data = data[seg * length_of_segment * fs:(seg + 1) * length_of_segment * fs]
+        sf.write(dest_dir / (src_file.stem + '_' + str(seg) + src_file.suffix), cut_data, fs)
+
+

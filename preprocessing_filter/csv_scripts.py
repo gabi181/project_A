@@ -25,26 +25,48 @@ paths, delimiter and name location changes are required.
 """
 from pathlib import Path
 
+indoor = ('room', 'hallway')
+outdoor = ('outdoor')
+
 p = Path('.')
-data_path = p.resolve().parent.parent / 'data'
+data_path = p.resolve().parent / 'data' / '4students'  #p.resolve().parent.parent / 'data'
 
 length_of_segment = 1
-data_type = 'cut_length_' + str(length_of_segment) + '_TAU-urban-acoustic-scenes-2019-development'
-csv_path = data_path / data_type / 'evaluation_setup'
-wav_files_path = data_path / data_type / 'audio'
+# data_type = 'cut_length_' + str(length_of_segment) + '_TAU-urban-acoustic-scenes-2019-development'
+csv_path = data_path / 'evaluation_setup'  #data_path / data_type / 'evaluation_setup'
+wav_files_path = data_path  # data_path / data_type / 'audio'
 
 if not(csv_path.exists()):
     csv_path.mkdir()
-csv_file_path = csv_path / 'cut_fold1_train.csv'
-csv_file = open(str(csv_file_path), 'w')
+csv_val_file_path = csv_path / 'fold1_val.csv'
+csv_test_file_path = csv_path / 'fold1_test.csv'
+csv_val_file = open(str(csv_val_file_path), 'w')
+csv_test_file = open(str(csv_test_file_path), 'w')
 
-delimiter = '-'
+delimiter = '.'
 tag = 0
-csv_file.write('filename\tscene_label\n')
+
+csv_val_file.write('filename\tscene_label\n')
+csv_test_file.write('filename\tscene_label\n')
+
+cur_csv = 0
+
 for file in wav_files_path.iterdir():
     label = file.stem.split(delimiter)[tag]
-    csv_file.write('audio/' + file.name + '\t' + label + '\n')
-csv_file.close()
+    if label in indoor:
+        label = 'shopping_mall'
+    elif label in outdoor:
+        label = 'park'
+    else:
+        continue
+    if cur_csv == 0:
+        csv_val_file.write('audio/' + file.name + '\t' + label + '\n')
+    else:
+        csv_test_file.write('audio/' + file.name + '\t' + label + '\n')
+    cur_csv = not cur_csv
+
+csv_val_file.close()
+csv_test_file.close()
 
 #%%
 """

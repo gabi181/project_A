@@ -152,3 +152,20 @@ def decimate_wav_file(src_file, dest_dir, dec_factor):
     dec_data = signal.decimate(data, dec_factor, axis=0)
     dec_fs = int(fs/dec_factor)
     sf.write(dest_dir / src_file.name, dec_data, dec_fs)
+
+
+#%%
+def place_speaker(src_file, dest_dir, speaker, speaker_proportion):
+    import soundfile as sf
+
+    src_data, fs = sf.read(src_file)
+    mean_speaker = abs(speaker).mean()
+    mean_src = abs(src_data).mean()
+    norm = speaker_proportion * mean_src / mean_speaker
+    if speaker.shape[0] > src_data.shape[0]:
+        speaker = speaker[:src_data.shape[0], :]
+    else:
+        src_data = src_data[:speaker.shape[0], :]
+    new_data = norm * speaker + src_data
+
+    sf.write(dest_dir / src_file.name, new_data, fs)

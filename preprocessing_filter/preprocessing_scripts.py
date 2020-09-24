@@ -1,3 +1,6 @@
+# import soundfile as sf
+# sf.read('../../data/TAU-urban-acoustic-scenes-2019-development/audio/airport-barcelona-0-0-a.wav')
+
 """
 This script uses the filter_wav_file to filter all wav files in directory.
 """
@@ -69,3 +72,35 @@ if not dest_dir.exists():
 for src_file in src_dir.iterdir():
     if src_file.is_file():
         decimate_wav_file(src_file, dest_dir, dec_factor)
+
+#%%
+from pathlib import Path
+import soundfile as sf
+from preprocessing_functions import place_speaker
+
+speaker_proportion = 2
+
+src_data_type = ''  # original
+# src_data_type = 'cut_length_1_'
+
+dest_data_type = 'placed_speaker_prop_' + str(speaker_proportion) + '_'
+
+p = Path('.')
+src_dir = p.resolve().parent.parent / 'data' / (src_data_type + 'TAU-urban-acoustic-scenes-2019-development') / 'audio'
+
+dest_dir = src_dir.parent.parent / (dest_data_type + src_dir.parent.name) / 'audio'
+if not dest_dir.parent.exists():
+    dest_dir.parent.mkdir()
+if not dest_dir.exists():
+    dest_dir.mkdir()
+
+speaker_path = p.resolve().parent.parent / 'data' / 'speakers' / 'radio_44_1_to_48.wav'
+speaker, fs = sf.read(speaker_path)
+counter = 1
+for src_file in src_dir.iterdir():
+    if counter == 3:
+        break
+    counter += 1
+    if src_file.is_file():
+        place_speaker(src_file, dest_dir, speaker, speaker_proportion)
+

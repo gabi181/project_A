@@ -54,14 +54,14 @@ print("tensorflow version = ", tensorflow.__version__)
 
 # DataSource = ''  # original DCASE data.
 # DataSource = 'filtered_'  # filtered DCASE data.
-# DataSource = 'cut_length_1_'  # cut DCASE data in length 1 sec
-DataSource = 'decimate_3_'
+DataSource = 'cut_length_1_'  # cut DCASE data in length 1 sec
+# DataSource = 'decimate_3_'
 
 WhichTask = '1a'
 # WhichTask = '1b'
 # WhichTask = '1c'
 
-dec_factor = 3
+dec_factor = 1
 
 if WhichTask == '1a':
     ThisPath = '../../data/' + DataSource + 'TAU-urban-acoustic-scenes-2019-development/'
@@ -91,10 +91,10 @@ NumTimeBins = int(np.ceil(SampleDuration * sr / HopLength))  # size of time dime
 
 # training parameters
 max_lr = 0.1
-batch_size = 16  # filtered+normal = 8, cut_length_1 = 32, decimated = 16
-num_epochs = 5  # 510
+batch_size = 32  # filtered+normal = 8, cut_length_1 = 32, decimated = 16
+num_epochs = 510  # 510
 mixup_alpha = 0.4
-crop_length = 100  # cut_length_1 = 30, normal+filtered = 400, dec_3 = 100
+crop_length = 30  # cut_length_1 = 30, normal+filtered = 400, dec_3 = 100
 
 # %%
 
@@ -242,8 +242,8 @@ history = model.fit(TrainDataGen,
 
 tz = pytz.timezone('Asia/Jerusalem')
 israel_datetime = datetime.now(tz)
-#%%
-model_name = 'DCASE_' + DataSource + israel_datetime.strftime("%d-%m-%Y_%H:%M:%S")
+
+model_name = 'DCASE_' + DataSource + israel_datetime.strftime("%d-%m-%Y_%H-%M-%S")
 model.save('./models/' + model_name + '.h5')
 
 model_doc_file = open('./models/Readme.txt', 'a')

@@ -26,27 +26,31 @@ print("Pysoundfile version = ",sound.__version__)
 print("keras version = ",keras.__version__)
 print("tensorflow version = ",tensorflow.__version__)
 #%%
-# DataSource = ''  # original DCASE data.
-# DataSource = 'filtered_'  # filtered DCASE data.
-DataSource = 'cut_length_1_'  # cut DCASE data, length 1 seconds.
-# DataSource = 'decimate_3_'
+data_type = ''  # original DCASE data.
+# data_type = 'filtered_'  # filtered DCASE data.
+# data_type = 'cut_length_1_'  # cut DCASE data, length 1 seconds.
+# data_type = 'decimate_3_'
 
-model_version = 'DCASE_cut_length_1_18-09-2020_06-10-18'
+
+#data_source = 'TAU-urban-acoustic-scenes-2019-development'
+data_source = 'rafael_16667_1sec'
+
+model_version = 'DCASE_decimate_3_1a_Task_development_1_17-09-2020_16:56:57' #'DCASE_Task1a_development'
 
 num_audio_channels = 2
 
 # Change paths or file names if needed!
 p = Path('.')
 saved_vectors_path = p.resolve() / 'saved_vectors'
-data_details = p, model_version, DataSource
+data_details = p, model_version, (data_type + data_source)
 
 #%%
 
 #Task 1a dev validation set
-ThisPath = '../../data/' + DataSource + 'TAU-urban-acoustic-scenes-2019-development/'
+ThisPath = '../../data/' + data_type + data_source + '/'
 File = ThisPath + 'evaluation_setup/fold1_evaluate.csv'
-sr = 48000
-SampleDuration = 10
+sr = 16667 #48000
+SampleDuration = 1 #10
 NumFreqBins = 128
 NumFFTPoints = 2048
 HopLength = int(NumFFTPoints/2)
@@ -75,7 +79,7 @@ y_val_labels[a2] = 2
 
 # If the data has already analyzed and saved, then load it. Else analyze and save it.
 
-LM_val_name = saved_vectors_path / (DataSource + 'LM_val.npy')
+LM_val_name = saved_vectors_path / (data_type + data_source + 'LM_val.npy')
 
 if not saved_vectors_path.exists():
     saved_vectors_path.mkdir()

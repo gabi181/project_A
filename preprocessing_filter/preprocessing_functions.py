@@ -8,24 +8,16 @@ sound (Boolean) - plays the original file and the filtered one.
 """
 
 
-def filter_wav_file(src_file, dest_file, show=False, sound=False):
+def filter_wav_file(data, fs, show=False):
 
     import matplotlib.pyplot as plt
     from scipy.fftpack import rfft, irfft
     import numpy as np
-    import soundfile as sf
-#   import sounddevice as sd
-    from pathlib import Path
 
     # Read, plot, and listen the original file.
-    data, fs = sf.read(src_file)
     if show:
         plt.plot(data.T[0])
         plt.show()
-
-#    if sound:
-#       sd.play(data, fs)
-#       status = sd.wait()
 
     F_data = rfft(data.T)  # calculate fourier transform (complex numbers list)
 
@@ -60,11 +52,9 @@ def filter_wav_file(src_file, dest_file, show=False, sound=False):
         plt.plot(filtered_data[0], 'r')
         plt.show()
 
-#    if sound:
-#        sd.play(filtered_data.T*2, fs)
-#        status = sd.wait()
 
-    sf.write(dest_file, filtered_data.T, fs)
+    return filtered_data.T
+
 
 
 """
@@ -121,15 +111,15 @@ def create_two_way_radio_filter(f_length=8500, data_sec=10, show=False):
 """
 This function cut src_file to segments with length (seconds) of length_of_segments.
 The remainder is thrown.
+The function creates 10 files from the original file data.
 """
 
 
-def cut_wav_file(src_file, dest_dir, length_of_segment):
+def cut_n_write_wav_file(data, fs, src_file, dest_dir, length_of_segment):
     import soundfile as sf
     from pathlib import Path
     import numpy as np
 
-    data, fs = sf.read(src_file)
     time_len = len(data) / fs
     num_of_segments = int(np.floor(time_len / length_of_segment))
 
@@ -144,21 +134,20 @@ This function read, decimate in factor 3 and save a wav file.
 #%%
 
 
-def decimate_wav_file(src_file, dest_dir, dec_factor):
-    import soundfile as sf
-    from pathlib import Path
+def decimate_wav_file(data, fs, dec_factor):
     from scipy import signal
-    data, fs = sf.read(src_file)
+
     dec_data = signal.decimate(data, dec_factor, axis=0)
     dec_fs = int(fs/dec_factor)
-    sf.write(dest_dir / src_file.name, dec_data, dec_fs)
+    return dec_data, dec_fs
 
 
 #%%
-def place_speaker(src_file, dest_dir, speaker, speaker_proportion):
-    import soundfile as sf
+"""
+This function place a speaker into audio file, the proportion is determined by speaker_proportion.
+"""
+def place_speaker(src_data, speaker, speaker_proportion):
 
-    src_data, fs = sf.read(src_file)
     mean_speaker = abs(speaker).mean()
     mean_src = abs(src_data).mean()
     norm = speaker_proportion * mean_src / mean_speaker
@@ -168,4 +157,6 @@ def place_speaker(src_file, dest_dir, speaker, speaker_proportion):
         src_data = src_data[:speaker.shape[0], :]
     new_data = norm * speaker + src_data
 
-    sf.write(dest_dir / src_file.name, new_data, fs)
+    return new_data
+
+

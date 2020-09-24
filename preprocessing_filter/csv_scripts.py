@@ -79,14 +79,18 @@ from pathlib import Path
 #which_fold = 'fold1_train.csv'
 which_fold = 'fold1_evaluate.csv'
 
+#dataSource = 'TAU-urban-acoustic-scenes-2019-development'
+dataSource = 'rafael'
+
 p = Path('.')
 data_path = p.resolve().parent.parent / 'data'
-orig_csv_dir = data_path /'TAU-urban-acoustic-scenes-2019-development' / 'evaluation_setup'
+orig_csv_dir = data_path / dataSource / 'evaluation_setup'
 orig_csv_path = orig_csv_dir / which_fold
-max_orig_length = 10
+max_orig_length = 42
 
 length_of_segment = 1
-data_type = 'cut_length_' + str(length_of_segment) + '_TAU-urban-acoustic-scenes-2019-development'
+
+data_type = 'cut_length_' + str(length_of_segment) + '_' + dataSource
 new_csv_dir = data_path / data_type / 'evaluation_setup'
 new_csv_path = new_csv_dir / which_fold
 
@@ -98,11 +102,11 @@ orig_csv_file = orig_csv_path.open()
 lines = orig_csv_file.readlines()
 new_csv_file.write(lines[0])
 for line in lines[1:]:
-    line_split = line.split('.')
+    line_split = line.split('.wav')
     for i in range(max_orig_length):
         file_name = line_split[0] + '_' + str(i) + '.wav'
         if (data_path / data_type / file_name).exists():
-            new_csv_file.write(line_split[0] + '_' + str(i) + '.' + line_split[1])
+            new_csv_file.write(file_name + line_split[1])
 
 new_csv_file.close()
 orig_csv_file.close()

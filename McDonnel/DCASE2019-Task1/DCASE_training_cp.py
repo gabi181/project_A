@@ -54,8 +54,9 @@ print("tensorflow version = ", tensorflow.__version__)
 
 # DataSource = ''  # original DCASE data.
 # DataSource = 'filtered_'  # filtered DCASE data.
-DataSource = 'cut_length_1_'  # cut DCASE data in length 1 sec
+# DataSource = 'cut_length_1_'  # cut DCASE data in length 1 sec
 # DataSource = 'decimate_3_'
+DataSource = 'placed_speaker_prop_2_'
 
 WhichTask = '1a'
 # WhichTask = '1b'
@@ -91,10 +92,10 @@ NumTimeBins = int(np.ceil(SampleDuration * sr / HopLength))  # size of time dime
 
 # training parameters
 max_lr = 0.1
-batch_size = 32  # filtered+normal = 8, cut_length_1 = 32, decimated = 16
-num_epochs = 510  # 510
+batch_size = 8  # filtered+normal = 8, cut_length_1 = 32, decimated = 16
+num_epochs = 5  # 510
 mixup_alpha = 0.4
-crop_length = 30  # cut_length_1 = 30, normal+filtered = 400, dec_3 = 100
+crop_length = 400  # cut_length_1 = 30, normal+filtered = 400, dec_3 = 100
 
 # %%
 

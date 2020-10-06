@@ -7,3 +7,4 @@ McDonnel/.idea/
 McDonnel/models/*
 McDonnel/saved_vectors/*
 McDonnel/confusion_matrices/
+McDonnel/accuracy_fig/

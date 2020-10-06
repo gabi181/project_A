@@ -160,3 +160,13 @@ def place_speaker(src_data, speaker, speaker_proportion):
     return new_data
 
 
+#%%
+def stereo2mono(data):
+    import numpy as np
+
+    newaudiodata = []
+    for i in range(len(data.T)):
+        d = (data[i][0] + data[i][1])/2
+        newaudiodata.append(d)
+
+    return np.array(newaudiodata, dtype='int16')

@@ -25,32 +25,47 @@ print("Librosa version = ",librosa.__version__)
 print("Pysoundfile version = ",sound.__version__)
 print("keras version = ",keras.__version__)
 print("tensorflow version = ",tensorflow.__version__)
+
 #%%
-data_type = ''  # original DCASE data.
-# data_type = 'filtered_'  # filtered DCASE data.
-# data_type = 'cut_length_1_'  # cut DCASE data, length 1 seconds.
-# data_type = 'decimate_3_'
 
+# preprocces = ''  # original DCASE data.
+# preprocces = 'filtered'  # filtered DCASE data.
+preprocces = 'cut_length_3'  # cut DCASE data, length 1 seconds.
+# preprocces = 'decimate_3'
+# preprocces = 'placed_speaker_prop_2'
+# preprocces = 'filtered_speaker_2_cut_3_dec_3_mono'
+preprocces = 'filtered_speaker_1-5_cut_3_dec_3_mono'
+# preprocces = 'filtered_speaker_2_cut_3_dec_3'
+# preprocces = 'filtered_speaker_2-5_cut_3_dec_3'
+# preprocces = 'filtered_speaker_1-5_cut_4_dec_3_mono'
 
-#data_source = 'TAU-urban-acoustic-scenes-2019-development'
-data_source = 'rafael_16667_1sec'
+# data_source = 'DCASE'
+# data_source = 'rafael'
+data_source = 'airport_str_traf'
 
-model_version = 'DCASE_decimate_3_1a_Task_development_1_17-09-2020_16:56:57' #'DCASE_Task1a_development'
+csv_val = 'in-air_out-str_traf_evaluate.csv'
+# csv_val = 'fold1_evaluate.csv'
 
-num_audio_channels = 2
+model_version = 'filtered_speaker_1-5_cut_3_dec_3_mono_airport_str_traf_2_class_02-10_13-03'
+
+num_audio_channels = 1
+dec_factor = 3
 
 # Change paths or file names if needed!
 p = Path('.')
 saved_vectors_path = p.resolve() / 'saved_vectors'
-data_details = p, model_version, (data_type + data_source)
+data_details = p, model_version, (preprocces + '_' + data_source)
 
 #%%
 
+
 #Task 1a dev validation set
-ThisPath = '../../data/' + data_type + data_source + '/'
-File = ThisPath + 'evaluation_setup/fold1_evaluate.csv'
-sr = 16667 #48000
-SampleDuration = 1 #10
+
+ThisPath = '../../data/' + preprocces + '_' + data_source + '/'
+File = ThisPath + 'evaluation_setup/' + csv_val
+# sr = int(48000 / dec_factor)
+sr = 16667
+SampleDuration = 3  # 10
 NumFreqBins = 128
 NumFFTPoints = 2048
 HopLength = int(NumFFTPoints/2)
@@ -79,14 +94,14 @@ y_val_labels[a2] = 2
 
 # If the data has already analyzed and saved, then load it. Else analyze and save it.
 
-LM_val_name = saved_vectors_path / (data_type + data_source + 'LM_val.npy')
+LM_val_npy = saved_vectors_path / (preprocces + '_' + data_source + '_LM_val.npy')
 
 if not saved_vectors_path.exists():
     saved_vectors_path.mkdir()
 
-if LM_val_name.exists():
-    print('loading', LM_val_name)
-    LM_val = np.load(LM_val_name)
+if LM_val_npy.exists():
+    print('loading', LM_val_npy)
+    LM_val = np.load(LM_val_npy)
     print('the files have been loaded!')
 
 else:
@@ -101,6 +116,7 @@ else:
     LM_val = np.zeros((len(wavpaths_val), NumFreqBins, NumTimeBins, num_audio_channels), 'float32')
     for i in range(len(wavpaths_val)):
         stereo, fs = sound.read(ThisPath + wavpaths_val[i], stop=SampleDuration * sr)
+#        stereo = np.stack((stereo, stereo), axis=1)
         for channel in range(num_audio_channels):
             if len(stereo.shape) == 1:
                 stereo = np.expand_dims(stereo, -1)
@@ -121,7 +137,7 @@ else:
 
     print('saving the analysis')
 
-    np.save(LM_val_name, LM_val)
+    np.save(LM_val_npy, LM_val)
 
 #%%
 
@@ -132,10 +148,10 @@ y_pred_val = np.argmax(best_model.predict(LM_val),axis=1)
 #%%
 
 #get metrics
-Overall_accuracy = np.sum(y_pred_val==y_val_labels)/LM_val.shape[0]
+Overall_accuracy = np.sum(y_pred_val == y_val_labels)/LM_val.shape[0]
 print("overall accuracy: ", Overall_accuracy)
 
-plot_confusion_matrix(y_val_labels, y_pred_val, ClassNames,normalize=True,title=None, data_details=data_details)
+plot_confusion_matrix(y_val_labels, y_pred_val, ClassNames, normalize=True, title=None, data_details=data_details, Overall_accuracy=Overall_accuracy)
 
 conf_matrix = confusion_matrix(y_val_labels,y_pred_val)
 conf_mat_norm_recall = conf_matrix.astype('float32')/conf_matrix.sum(axis=1)[:,np.newaxis]

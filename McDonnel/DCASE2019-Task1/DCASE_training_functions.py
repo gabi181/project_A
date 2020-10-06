@@ -33,6 +33,7 @@ class LR_WarmRestart(keras.callbacks.Callback):
     
     def on_batch_begin(self, batch, logs={}):
         pts = self.currentEP + batch/self.nbatch - self.startEP
+        pts = pts*(pts < 257) + 257*(pts >= 257)
         decay = 1+np.cos(pts/self.Tmult*np.pi)
         lr = self.min_lr+0.5*(self.initial_lr-self.min_lr)*decay
         K.set_value(self.model.optimizer.lr,lr)

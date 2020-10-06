@@ -8,7 +8,8 @@ def plot_confusion_matrix(y_true, y_pred, classes,
                           normalize=False,
                           title=None,
                           cmap=plt.cm.Blues,
-                          data_details=[Path('.'), 'DCASE_TASK1a', '']):
+                          data_details=[Path('.'), 'DCASE_TASK1a', ''],
+                          Overall_accuracy=0):
     """
     This function prints and plots the confusion matrix.
     Normalization can be applied by setting `normalize=True`.
@@ -18,7 +19,7 @@ def plot_confusion_matrix(y_true, y_pred, classes,
             title = 'Normalized confusion matrix'
         else:
             title = 'Confusion matrix, without normalization'
-
+    title = 'Overall accuracy = ' + str(Overall_accuracy)
     # Compute confusion matrix
     cm = confusion_matrix(y_true, y_pred)
     # Only use the labels that appear in the data
@@ -64,5 +65,25 @@ def plot_confusion_matrix(y_true, y_pred, classes,
     if not path.exists():
         path.mkdir()
     plt.savefig(path / ('model-' + model_name + '_test_data-' + data_type))
+    plt.show()
+    return
+
+
+def accuracy_plot(history, data_details):
+    # list all data in history
+    print(history.history.keys())
+    # summarize history for accuracy
+    plt.plot(history.history['accuracy'])
+    plt.plot(history.history['val_accuracy'])
+    plt.title('model accuracy')
+    plt.ylabel('accuracy')
+    plt.xlabel('epoch')
+    plt.legend(['train', 'test'], loc='upper left')
+
+    path, model_name = data_details
+    path = path.resolve() / 'accuracy_fig'
+    if not path.exists():
+        path.mkdir()
+    plt.savefig(path / ('acc_' + model_name))
     plt.show()
     return

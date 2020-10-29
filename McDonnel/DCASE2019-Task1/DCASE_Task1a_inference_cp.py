@@ -34,19 +34,20 @@ preprocces = 'cut_length_3'  # cut DCASE data, length 1 seconds.
 # preprocces = 'decimate_3'
 # preprocces = 'placed_speaker_prop_2'
 # preprocces = 'filtered_speaker_2_cut_3_dec_3_mono'
-preprocces = 'filtered_speaker_1-5_cut_3_dec_3_mono'
+# preprocces = 'filtered_speaker_1-5_cut_3_dec_3_mono'
 # preprocces = 'filtered_speaker_2_cut_3_dec_3'
 # preprocces = 'filtered_speaker_2-5_cut_3_dec_3'
 # preprocces = 'filtered_speaker_1-5_cut_4_dec_3_mono'
 
 # data_source = 'DCASE'
-# data_source = 'rafael'
-data_source = 'airport_str_traf'
+data_source = 'rafael'
+# data_source = 'airport_str_traf'
 
-csv_val = 'in-air_out-str_traf_evaluate.csv'
+# csv_val = 'in-air_out-str_traf_evaluate.csv'
 # csv_val = 'fold1_evaluate.csv'
+csv_val = 'fold1_test_80-20.csv'
 
-model_version = 'filtered_speaker_1-5_cut_3_dec_3_mono_airport_str_traf_2_class_02-10_13-03'
+model_version = 'model1_transfer_learning_08-10_13-06'
 
 num_audio_channels = 1
 dec_factor = 3
@@ -63,8 +64,10 @@ data_details = p, model_version, (preprocces + '_' + data_source)
 
 ThisPath = '../../data/' + preprocces + '_' + data_source + '/'
 File = ThisPath + 'evaluation_setup/' + csv_val
-# sr = int(48000 / dec_factor)
-sr = 16667
+if data_source in ['rafael']:
+    sr = 16667
+elif data_source in ['DCASE', 'airport_str_traf']:
+    sr = int(48000 / dec_factor)
 SampleDuration = 3  # 10
 NumFreqBins = 128
 NumFFTPoints = 2048
@@ -142,8 +145,8 @@ else:
 #%%
 
 #load and run the model
-best_model = keras.models.load_model('./models/' + model_version + '.h5')
-y_pred_val = np.argmax(best_model.predict(LM_val),axis=1)
+best_model = keras.models.load_model('./tl_models/' + model_version + '.h5')
+y_pred_val = np.argmax(best_model.predict(LM_val), axis=1)
 
 #%%
 

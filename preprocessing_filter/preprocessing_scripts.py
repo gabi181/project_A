@@ -36,7 +36,8 @@ from preprocessing_functions import cut_n_write_wav_file
 
 length_of_segment = 3  # seconds
 #dataSource = 'TAU-urban-acoustic-scenes-2019-development'
-dataSource = 'rafael_16667'
+# dataSource = 'rafael_16667'
+dataSource = 'airport_str_traf'
 
 p = Path('.')
 src_dir = p.resolve().parent.parent / 'data' / dataSource / 'audio'

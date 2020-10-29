@@ -81,9 +81,28 @@ def accuracy_plot(history, data_details):
     plt.legend(['train', 'test'], loc='upper left')
 
     path, model_name = data_details
-    path = path.resolve() / 'accuracy_fig'
     if not path.exists():
         path.mkdir()
+    plt.grid()
     plt.savefig(path / ('acc_' + model_name))
+    plt.show()
+    return
+
+def loss_plot(history, data_details):
+    # list all data in history
+    print(history.history.keys())
+    # summarize history for accuracy
+    plt.plot(history.history['loss'])
+    plt.plot(history.history['val_loss'])
+    plt.title('model loss')
+    plt.ylabel('loss')
+    plt.xlabel('epoch')
+    plt.legend(['train', 'test'], loc='upper left')
+
+    path, model_name = data_details
+    path = path.resolve() / 'loss_fig'
+    if not path.exists():
+        path.mkdir()
+    plt.savefig(path / ('loss_' + model_name))
     plt.show()
     return

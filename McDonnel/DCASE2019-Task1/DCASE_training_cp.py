@@ -55,36 +55,40 @@ print("tensorflow version = ", tensorflow.__version__)
 
 # preprocess = ''  # original DCASE data.
 # preprocess = 'filtered'  # filtered DCASE data.
-# preprocess = 'cut_length_1'  # cut DCASE data in length 1 sec
+preprocess = 'cut_length_3'  # cut DCASE data in length 1 sec
 # preprocess = 'decimate_3'
 # preprocess = 'placed_speaker_prop_2'
 # preprocess = 'filtered_speaker_2_cut_3_dec_3_mono'
-preprocess = 'filtered_speaker_1-5_cut_3_dec_3'
+# preprocess = 'filtered_speaker_1-5_cut_3_dec_3'
 # preprocess = 'filtered_speaker_2_cut_3_dec_3'
 # preprocess = 'filtered_speaker_2-5_cut_3_dec_3'
 
-length_of_segment = 2
+length_of_segment = 3
 
-for preprocess in ['filtered_speaker_1-5_cut_2_dec_3_mono']:
+for preprocess in ['cut_length_3']:
 
     # data_source = 'DCASE'
     # data_source = 'rafael'
     data_source = 'airport_str_traf'
 
     # csv_train = 'fold1_train.csv'
-    csv_train = 'in-air_out-str_traf_train.csv'
+    # csv_train = 'in-air_out-str_traf_train.csv'
+    csv_train = 'fold1_train_80-20.csv'
     # csv_val = 'fold1_evaluate.csv'
-    csv_val = 'in-air_out-str_traf_evaluate.csv'
+    # csv_val = 'in-air_out-str_traf_evaluate.csv'
+    csv_val = 'fold1_test_80-20.csv'
 
-    dec_factor = 3
+    dec_factor = 1
 
     ThisPath = '../../data/' + preprocess + '_' + data_source + '/'
     # ThisPathVal = '../../data/' + 'cut_length_3_rafael_16667/'
     TrainFile = ThisPath + 'evaluation_setup/' + csv_train
     ValFile = ThisPath + 'evaluation_setup/' + csv_val
-    sr = int(48000 / dec_factor)
-    # srVal = 16667
-    num_audio_channels = 1  #2
+    if data_source in ['rafael']:
+        sr = 16667
+    elif data_source in ['DCASE', 'airport_str_traf']:
+        sr = int(48000 / dec_factor)
+    num_audio_channels = 2  #2
 
     SampleDuration = length_of_segment  # 10
     length_of_segment = length_of_segment + 1
@@ -97,10 +101,10 @@ for preprocess in ['filtered_speaker_1-5_cut_2_dec_3_mono']:
 
     # training parameters
     max_lr = 0.1
-    batch_size = 64  # filtered+normal = 8, cut_length_1 = 32, decimated = 16
+    batch_size = 32  # filtered+normal = 8, cut_length_1 = 32, decimated = 16
     num_epochs = 510
     mixup_alpha = 0.4
-    crop_length = 20  # cut_length_1 = 30, normal+filtered = 400, dec_3 = 100
+    crop_length = 90  # cut_length_1 = 30, normal+filtered = 400, dec_3 = 100
 
 #    # %%
 
@@ -260,5 +264,6 @@ for preprocess in ['filtered_speaker_1-5_cut_2_dec_3_mono']:
                          '\tcrop_length= ' + str(crop_length) + '\n')
     model_doc_file.close()
 
-    data_details = p, model_name
+    path = p.resolve() / 'accuracy_fig'
+    data_details = path, model_name
     accuracy_plot(history, data_details)

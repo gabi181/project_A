@@ -8,3 +8,7 @@ McDonnel/models/*
 McDonnel/saved_vectors/*
 McDonnel/confusion_matrices/
 McDonnel/accuracy_fig/
+McDonnel/tl_models/
+McDonnel/loss_fig/
+McDonnel/tl_accuracy_fig/
+cpjku_dcase19/

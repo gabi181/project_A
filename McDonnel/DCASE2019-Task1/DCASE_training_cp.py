@@ -62,14 +62,14 @@ preprocess = 'cut_length_3'  # cut DCASE data in length 1 sec
 # preprocess = 'filtered_speaker_1-5_cut_3_dec_3'
 # preprocess = 'filtered_speaker_2_cut_3_dec_3'
 # preprocess = 'filtered_speaker_2-5_cut_3_dec_3'
+# preprocess = 'decimate_3_mono_cut_length_3'
+length_of_segment = 4
 
-length_of_segment = 3
-
-for preprocess in ['cut_length_3']:
+for preprocess in ['cut_length_4', 'cut_length_5', 'cut_length_6']:
 
     # data_source = 'DCASE'
-    # data_source = 'rafael'
-    data_source = 'airport_str_traf'
+    data_source = 'rafael'
+    # data_source = 'airport_str_traf'
 
     # csv_train = 'fold1_train.csv'
     # csv_train = 'in-air_out-str_traf_train.csv'
@@ -78,7 +78,7 @@ for preprocess in ['cut_length_3']:
     # csv_val = 'in-air_out-str_traf_evaluate.csv'
     csv_val = 'fold1_test_80-20.csv'
 
-    dec_factor = 1
+    dec_factor = 3
 
     ThisPath = '../../data/' + preprocess + '_' + data_source + '/'
     # ThisPathVal = '../../data/' + 'cut_length_3_rafael_16667/'
@@ -88,7 +88,7 @@ for preprocess in ['cut_length_3']:
         sr = 16667
     elif data_source in ['DCASE', 'airport_str_traf']:
         sr = int(48000 / dec_factor)
-    num_audio_channels = 2  #2
+    num_audio_channels = 1  #2
 
     SampleDuration = length_of_segment  # 10
     length_of_segment = length_of_segment + 1
@@ -104,7 +104,7 @@ for preprocess in ['cut_length_3']:
     batch_size = 32  # filtered+normal = 8, cut_length_1 = 32, decimated = 16
     num_epochs = 510
     mixup_alpha = 0.4
-    crop_length = 90  # cut_length_1 = 30, normal+filtered = 400, dec_3 = 100
+    crop_length = SampleDuration*8  # cut_length_1 = 30, normal+filtered = 400, dec_3 = 100
 
 #    # %%
 
@@ -209,61 +209,60 @@ for preprocess in ['cut_length_3']:
         np.save(y_val_npy, y_val)
 
 #    # %%
+    for num_epochs in [254, 510]:
+        # create and compile the model
+        model = model_resnet(NumClasses,
+                             input_shape=[NumFreqBins, None, 3 * num_audio_channels],
+                             num_filters=24,
+                             wd=1e-3)
+        model.compile(loss='categorical_crossentropy',
+                      optimizer=SGD(lr=max_lr, decay=0, momentum=0.9, nesterov=False),
+                      metrics=['accuracy'])
 
-    # create and compile the model
-    model = model_resnet(NumClasses,
-                         input_shape=[NumFreqBins, None, 3 * num_audio_channels],
-                         num_filters=24,
-                         wd=1e-3)
-    model.compile(loss='categorical_crossentropy',
-                  optimizer=SGD(lr=max_lr, decay=0, momentum=0.9, nesterov=False),
-                  metrics=['accuracy'])
+        model.summary()
 
-    model.summary()
+    #    # %%
 
-#    # %%
+        # set learning rate schedule
+        lr_scheduler = LR_WarmRestart(nbatch=np.ceil(LM_train.shape[0] / batch_size), Tmult=2,
+                                      initial_lr=max_lr, min_lr=max_lr * 1e-4,
+                                      epochs_restart=[3.0, 7.0, 15.0, 31.0, 63.0, 127.0, 255.0])
 
-    # set learning rate schedule
-    lr_scheduler = LR_WarmRestart(nbatch=np.ceil(LM_train.shape[0] / batch_size), Tmult=2,
-                                  initial_lr=max_lr, min_lr=max_lr * 1e-4,
-                                  epochs_restart=[3.0, 7.0, 15.0, 31.0, 63.0, 127.0, 255.0])
-
-    callbacks = [lr_scheduler]
-#    # %%
-    # create data generator
-    TrainDataGen = MixupGenerator(LM_train,
-                                  y_train,
-                                  batch_size=batch_size,
-                                  alpha=mixup_alpha,
-                                  crop_length=crop_length)()
-#    # %%
-    # train the model
-
-    history = model.fit(TrainDataGen,
-                        validation_data=(LM_val, y_val),
-                        epochs=num_epochs,
-                        verbose=1,
-                        workers=4,
-                        max_queue_size=100,
-                        callbacks=callbacks,
-                        steps_per_epoch=np.ceil(LM_train.shape[0] / batch_size)
-                        )
+        callbacks = [lr_scheduler]
+    #    # %%
+        # create data generator
+        TrainDataGen = MixupGenerator(LM_train,
+                                      y_train,
+                                      batch_size=batch_size,
+                                      alpha=mixup_alpha,
+                                      crop_length=crop_length)()
+    #    # %%
+        # train the model
+        history = model.fit(TrainDataGen,
+                            validation_data=(LM_val, y_val),
+                            epochs=num_epochs,
+                            verbose=1,
+                            workers=4,
+                            max_queue_size=100,
+                            callbacks=callbacks,
+                            steps_per_epoch=np.ceil(LM_train.shape[0] / batch_size)
+                            )
 
 
-    tz = pytz.timezone('Asia/Jerusalem')
-    israel_datetime = datetime.now(tz)
+        tz = pytz.timezone('Asia/Jerusalem')
+        israel_datetime = datetime.now(tz)
 
-    model_name = preprocess + '_' + data_source + '_' + str(NumClasses) + '_' + 'class' + '_' + israel_datetime.strftime("%d-%m_%H-%M")
-    model.save('./models/' + model_name + '.h5')
+        model_name = preprocess + '_' + data_source + '_' + str(NumClasses) + '_' + 'class' + '_' + israel_datetime.strftime("%d-%m_%H-%M")
+        model.save('./models/' + model_name + '.h5')
 
-    model_doc_file = open('./models/Readme.txt', 'a')
-    model_doc_file.write('\n' + model_name + '\n' +
-                         'max_lr= ' + str(max_lr) +
-                         '\tbatch_size= ' + str(batch_size) +
-                         '\tnum_epochs= ' + str(num_epochs) +
-                         '\tcrop_length= ' + str(crop_length) + '\n')
-    model_doc_file.close()
+        model_doc_file = open('./models/Readme.txt', 'a')
+        model_doc_file.write('\n' + model_name + '\n' +
+                             'max_lr= ' + str(max_lr) +
+                             '\tbatch_size= ' + str(batch_size) +
+                             '\tnum_epochs= ' + str(num_epochs) +
+                             '\tcrop_length= ' + str(crop_length) + '\n')
+        model_doc_file.close()
 
-    path = p.resolve() / 'accuracy_fig'
-    data_details = path, model_name
-    accuracy_plot(history, data_details)
+        path = p.resolve() / 'accuracy_fig'
+        data_details = path, model_name
+        accuracy_plot(history, data_details)

@@ -30,7 +30,7 @@ print("tensorflow version = ",tensorflow.__version__)
 
 # preprocces = ''  # original DCASE data.
 # preprocces = 'filtered'  # filtered DCASE data.
-preprocces = 'cut_length_3'  # cut DCASE data, length 1 seconds.
+preprocces = 'cut_length_4'  # cut DCASE data, length 1 seconds.
 # preprocces = 'decimate_3'
 # preprocces = 'placed_speaker_prop_2'
 # preprocces = 'filtered_speaker_2_cut_3_dec_3_mono'
@@ -47,7 +47,7 @@ data_source = 'rafael'
 # csv_val = 'fold1_evaluate.csv'
 csv_val = 'fold1_test_80-20.csv'
 
-model_version = 'model1_transfer_learning_08-10_13-06'
+model_version = 'cut_length_4_rafael_2_class_17-11_17-46'
 
 num_audio_channels = 1
 dec_factor = 3
@@ -145,7 +145,7 @@ else:
 #%%
 
 #load and run the model
-best_model = keras.models.load_model('./tl_models/' + model_version + '.h5')
+best_model = keras.models.load_model('./models/' + model_version + '.h5')
 y_pred_val = np.argmax(best_model.predict(LM_val), axis=1)
 
 #%%

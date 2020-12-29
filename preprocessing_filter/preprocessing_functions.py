@@ -102,7 +102,7 @@ def create_two_way_radio_filter(f_length=8500, data_sec=10, show=False):
 
     if show:
         plt.plot(window)
-        plt.xlim(0, 48000)  # normal hearing frequencies are up to 8,000 Hz.
+        plt.xlim(0, f_length)  # normal hearing frequencies are up to 8,000 Hz.
         plt.show()
 
     return window

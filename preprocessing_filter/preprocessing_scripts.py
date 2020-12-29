@@ -30,14 +30,15 @@ for src_file in q.iterdir():
 This script uses the cut_wav_file to cut all wav files in directory.
 """
 
-
 from pathlib import Path
 from preprocessing_functions import cut_n_write_wav_file
+import soundfile as sf
 
-length_of_segment = 3  # seconds
+length_of_segment = 6  # seconds
 #dataSource = 'TAU-urban-acoustic-scenes-2019-development'
 # dataSource = 'rafael_16667'
-dataSource = 'airport_str_traf'
+# dataSource = 'airport_str_traf'
+dataSource = 'rafael'
 
 p = Path('.')
 src_dir = p.resolve().parent.parent / 'data' / dataSource / 'audio'
@@ -52,6 +53,33 @@ for src_file in src_dir.iterdir():
         data, fs = sf.read(src_file)
         cut_n_write_wav_file(data, fs, src_file, dest_dir, length_of_segment)
 
+#%%
+"""
+Mono to streo
+"""
+
+
+from preprocessing_functions import filter_wav_file
+from pathlib import Path
+import soundfile as sf
+
+dataSource = 'cut_length_3_airport_str_traf'
+
+p = Path('.')
+q = p.resolve().parent.parent / 'data' / dataSource / 'audio'
+
+dest_dir = q.parent.parent / ('mono_' + q.parent.name)
+if not dest_dir.exists():
+    dest_dir.mkdir()
+
+
+for src_file in q.iterdir():
+    if src_file.is_file():
+        dest_file = dest_dir / src_file.name  # filtered_
+        data, fs = sf.read(src_file)
+        data = data.sum(axis=1) / 2  # stereo to mono
+        sf.write(dest_file, data, fs)
+
 
 #%%
 """
@@ -62,13 +90,13 @@ This script uses the decimate_wav_file function to decimate all wav files in dir
 from pathlib import Path
 from preprocessing_functions import decimate_wav_file
 
-dec_factor = 6
+dec_factor = 3
 
-src_data_type = ''  # original
+src_data_type = 'mono_cut_length_3_'  # original
 # src_data_type = 'cut_length_1_'
 
 #src_data = 'TAU-urban-acoustic-scenes-2019-development'
-src_data = 'rafael_updateRec'
+src_data = 'airport_str_traf'
 
 dest_data_type = 'decimate_' + str(dec_factor) + '_'
 
